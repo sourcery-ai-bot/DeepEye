@@ -12,9 +12,9 @@ class Type(object):
             return Type.categorical
         if len(s)>=3 and s[0:3]=='int':
             return Type.numerical
-        if s=='int' or s=='double' or s=='float':
+        if s in ['int', 'double', 'float']:
             return Type.numerical
-        if s=='date' or s=='datetime':
+        if s in ['date', 'datetime']:
             return Type.temporal
 
 

@@ -31,11 +31,11 @@ class Table(object):
             minMinute = minTime.minute
             minSecond = minTime.second
             maxHour = maxTime.hour
-            maxMinute = maxTime.minute
-            maxSecond = maxTime.second
             if minHour == maxHour:
+                maxMinute = maxTime.minute
                 if minMinute == maxMinute:
                     interval = 'SECOND'
+                    maxSecond = maxTime.second
                     for i in range(minSecond, maxSecond + 1):
                         t = datetime.datetime(minTime.year, minTime.month, minTime.day, minHour, minMinute, i)
                         bins.append([str(i) + 's', t, t, 0])
@@ -53,14 +53,14 @@ class Table(object):
                     bins.append([str(i) + ' oclock', t1, t2, 0])
         else:
             minYear = minTime.year
-            minMonth = minTime.month
-            minDay = minTime.day
             maxYear = maxTime.year
-            maxMonth = maxTime.month
-            maxDay = maxTime.day
             if minYear == maxYear:
+                minMonth = minTime.month
+                maxMonth = maxTime.month
                 if minMonth == maxMonth:
                     interval = 'DAY'
+                    minDay = minTime.day
+                    maxDay = maxTime.day
                     for i in range(minDay, maxDay + 1):
                         bins.append([str(i) + 'th', datetime.date(minYear, minMonth, i),
                                      datetime.date(minYear, minMonth, i), 0])
@@ -78,15 +78,11 @@ class Table(object):
                 interval = 'YEAR'
                 yearNum = maxYear - minYear + 1
                 if yearNum > 20:
-                    if yearNum % 10 > yearNum / 10:
-                        yearDelta = yearNum / 10 + 1
-                    else:
-                        yearDelta = yearNum / 10
+                    yearDelta = yearNum / 10 + 1 if yearNum % 10 > yearNum / 10 else yearNum / 10
                     beginYear = minYear
                     while True:
                         endYear = beginYear + yearDelta - 1
-                        if endYear > maxYear:
-                            endYear = maxYear
+                        endYear = min(endYear, maxYear)
                         if beginYear == endYear:
                             bins.append(
                                 [str(beginYear), datetime.date(beginYear, 1, 1), datetime.date(endYear, 12, 31),
@@ -227,9 +223,11 @@ class Table(object):
         self.instance.view_num+=self.view_num
 
     def dealWithGroup(self,column_id,begin,end):
-        d = {}
-        for i in range(0,self.features[column_id].distinct):
-            d[self.features[column_id].distinct_values[i][0]]=[0]
+        d = {
+            self.features[column_id].distinct_values[i][0]: [0]
+            for i in range(self.features[column_id].distinct)
+        }
+
         for i in range(begin,end):
             d[self.D[i][column_id]][0]+=1
         new_table = Table(self.instance, True, 'GROUP BY ' + self.names[column_id],'')
@@ -247,17 +245,17 @@ class Table(object):
                 else:
                     new_table.types.extend([Type.numerical,Type.numerical])
                 new_table.origins.extend([i, i])
-                for k in d:
-                    d[k].extend([0, 0])
+                for k, v_ in d.items():
+                    v_.extend([0, 0])
         for i in range(begin,end):
             sum_column = 1
             for j in range(self.column_num):
                 if self.types[j] == Type.numerical:
                     d[self.D[i][column_id]][sum_column] += self.D[i][j]
                     sum_column += 2
-        for k in d:
+        for k, v in d.items():
             for i in range(1, new_table.column_num, 2):
-                if d[k][0]:
+                if v[0]:
                     d[k][i + 1] = 1.0 * d[k][i] / d[k][0]
         for k in d:
             l = d[k]
@@ -424,7 +422,10 @@ class Table(object):
             return new_tables
 
         for i in range(self.column_num):
-            if ((self.types[i] == Type.temporal or self.types[i] == Type.categorical) and self.features[i].ratio < 1.0):
+            if (
+                self.types[i] in [Type.temporal, Type.categorical]
+                and self.features[i].ratio < 1.0
+            ):
                 new_tables.append(self.dealWithGroup(i,0,self.tuple_num))
 
             if self.types[i]==Type.temporal:
@@ -459,11 +460,12 @@ class Table(object):
                 if i==j:
                     continue
 
-                if self.types[j]==Type.categorical or self.types[j]==Type.temporal:
-                    s = set()
-                    for k in range(self.tuple_num):
-                        s.add((self.D[k][i], self.D[k][j]))
-                    if len(s)>self.features[j].distinct and ((self.types[j]==Type.categorical and self.features[i].distinct<=self.features[j].distinct) or self.types[j]==Type.temporal):
+                if self.types[j] in [Type.categorical, Type.temporal]:
+                    s = {(self.D[k][i], self.D[k][j]) for k in range(self.tuple_num)}
+                    if len(s) > self.features[j].distinct and (
+                        self.features[i].distinct <= self.features[j].distinct
+                        or self.types[j] == Type.temporal
+                    ):
                         new_table=self.getClassifyTable(i,j,self.dealWithGroup)
                         if len(s)==self.instance.tuple_num:
                             for k in range(new_table.column_num):

@@ -76,8 +76,7 @@ class myGraph(object):
         for k in range(self.node_num):
             for i in range(self.node_num):
                 for j in range(self.node_num):
-                    if self.dis[i][j]>self.dis[i][k]+self.dis[k][j]:
-                        self.dis[i][j]=self.dis[i][k]+self.dis[k][j]
+                    self.dis[i][j] = min(self.dis[i][j], self.dis[i][k]+self.dis[k][j])
 
         #get sim
         for i in range(self.node_num):
@@ -88,7 +87,7 @@ class myGraph(object):
     def getTopK(self,K):
         score=0
         result=[]
-        for k in range(K):
+        for _ in range(K):
             max_id=-1
             max_delta_score=float('-inf')
             for i in range(self.node_num):
@@ -100,7 +99,7 @@ class myGraph(object):
                 if delta_score>max_delta_score:
                     max_delta_score=delta_score
                     max_id=i
-            score=score+max_delta_score
+            score += max_delta_score
             result.append(max_id)
         return result
 

@@ -30,10 +30,10 @@ class Table(object):
             minMinute = minTime.minute
             minSecond = minTime.second
             maxHour = maxTime.hour
-            maxMinute = maxTime.minute
-            maxSecond = maxTime.second
             if minHour == maxHour:
+                maxMinute = maxTime.minute
                 if minMinute == maxMinute:
+                    maxSecond = maxTime.second
                     #interval = 'SECOND'
                     for i in range(minSecond, maxSecond + 1):
                         t = datetime.datetime(minTime.year, minTime.month, minTime.day, minHour, minMinute, i)
@@ -52,13 +52,13 @@ class Table(object):
                     bins.append([str(i) + ' oclock', t1, t2, 0])
         else:
             minYear = minTime.year
-            minMonth = minTime.month
-            minDay = minTime.day
             maxYear = maxTime.year
-            maxMonth = maxTime.month
-            maxDay = maxTime.day
             if minYear == maxYear:
+                minMonth = minTime.month
+                maxMonth = maxTime.month
                 if minMonth == maxMonth:
+                    minDay = minTime.day
+                    maxDay = maxTime.day
                     #interval = 'DAY'
                     for i in range(minDay, maxDay + 1):
                         bins.append([str(i)+'th',datetime.date(minYear, minMonth, i),datetime.date(minYear, minMonth, i), 0])
@@ -74,15 +74,11 @@ class Table(object):
                 #interval = 'YEAR'
                 yearNum = maxYear - minYear + 1
                 if yearNum > 20:
-                    if yearNum % 10 > yearNum / 10:
-                        yearDelta = yearNum / 10 + 1
-                    else:
-                        yearDelta = yearNum / 10
+                    yearDelta = yearNum / 10 + 1 if yearNum % 10 > yearNum / 10 else yearNum / 10
                     beginYear = minYear
                     while True:
                         endYear = beginYear + yearDelta - 1
-                        if endYear > maxYear:
-                            endYear = maxYear
+                        endYear = min(endYear, maxYear)
                         if beginYear == endYear:
                             bins.append([str(beginYear), datetime.date(beginYear, 1, 1), datetime.date(endYear, 12, 31),0])
                         else:
@@ -262,26 +258,28 @@ class Table(object):
             new_table.types.append(self.types[column_id])
             new_table.origins.append(column_id)
         if get_data:
-            d = {}
             num=1#numerical column number
-            for i in range(0, self.features[column_id].distinct):
-                d[self.features[column_id].distinct_values[i][0]] = [0]
+            d = {
+                self.features[column_id].distinct_values[i][0]: [0]
+                for i in range(self.features[column_id].distinct)
+            }
+
             for i in range(begin, end):
                 d[self.D[i][column_id]][0] += 1
             for i in range(self.column_num):
                 if self.types[i]==Type.numerical:
                     num+=2
-                    for k in d:
-                        d[k].extend([0,0])
+                    for k, v_ in d.items():
+                        v_.extend([0,0])
             for i in range(begin,end):
                 sum_column = 1
                 for j in range(self.column_num):
                     if self.types[j] == Type.numerical:
                         d[self.D[i][column_id]][sum_column] += self.D[i][j]
                         sum_column += 2
-            for k in d:
+            for k, v in d.items():
                 for i in range(1,num,2):
-                    if d[k][0]:
+                    if v[0]:
                         d[k][i + 1] = 1.0 * d[k][i] / d[k][0]
             for k in d:
                 l = d[k]
@@ -450,7 +448,7 @@ class Table(object):
                 if new_table.names[k][0:4] == 'SUM(':
                     new_table.names[k] = new_table.names[k][4:-1]
                     new_table.types[k] = Type.numerical
-                elif new_table.names[k][0:4] == 'AVG(' or new_table.names[k][0:4] == 'CNT(':
+                elif new_table.names[k][0:4] in ['AVG(', 'CNT(']:
                     new_table.types[k] = Type.none
 
         begin_id = 0
@@ -506,10 +504,11 @@ class Table(object):
                 if i==j:
                     continue
                 if (self.types[j]==Type.categorical and self.features[j].distinct<=20) or self.types[j]==Type.temporal:
-                    s = set()
-                    for k in range(self.tuple_num):
-                        s.add((self.D[k][i], self.D[k][j]))
-                    if len(s)>self.features[j].distinct and ((self.types[j]==Type.categorical and self.features[i].distinct<=self.features[j].distinct) or self.types[j]==Type.temporal):
+                    s = {(self.D[k][i], self.D[k][j]) for k in range(self.tuple_num)}
+                    if len(s) > self.features[j].distinct and (
+                        self.features[i].distinct <= self.features[j].distinct
+                        or self.types[j] == Type.temporal
+                    ):
                         if len(s)==self.instance.tuple_num:
                             new_table = self.getClassifyTable(i, j, self.dealWithGroup,False)
                         else:

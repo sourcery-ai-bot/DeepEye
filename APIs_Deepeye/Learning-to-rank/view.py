@@ -62,7 +62,7 @@ class View(object):
 
 
     def output(self):
-        correlation = max([self.getCorrelation(i) for i in range(self.series_num)])
+        correlation = max(self.getCorrelation(i) for i in range(self.series_num))
         if self.fx.type == Type.temporal:
             return '1 qid:1 1:' + str(self.fx.type) + ' 2:' + str(self.fy.type) + ' 3:' + str(
                 self.tuple_num) + ' 4:' + str(self.tuple_num) + ' 5:0 6:' + str(self.fy.min) + ' 7:0 8:' + str(

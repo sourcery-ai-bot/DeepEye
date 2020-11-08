@@ -113,22 +113,22 @@ class View(object):
             if self.series_num==1:
                 self.M=self.getCorrelation(0)
             else:
-                self.M=max([self.getCorrelation(i) for i in range(self.series_num)])
+                self.M = max(self.getCorrelation(i) for i in range(self.series_num))
         else:
             if self.series_num==1:
-                if self.getCorrelation(0)>0.3:
-                    self.M=1
-                else:
-                    self.M=0
+                self.M = 1 if self.getCorrelation(0)>0.3 else 0
             else:
-                if max([self.getCorrelation(i) for i in range(self.series_num)])>0.3:
+                if (
+                    max(self.getCorrelation(i) for i in range(self.series_num))
+                    > 0.3
+                ):
                     self.M=1
                 else:
                     self.M=0
 
     def getQ(self):
         self.Q=1
-        if self.chart==Chart.bar or self.chart==Chart.pie:
+        if self.chart in [Chart.bar, Chart.pie]:
             self.Q=1-1.0*(self.tuple_num/self.series_num)/self.table.instance.tuple_num
 
     def output(self,order):

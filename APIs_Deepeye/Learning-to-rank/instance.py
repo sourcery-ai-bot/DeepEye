@@ -25,25 +25,22 @@ class Instance(object):
 
     def getScore(self):
         path=os.path.dirname(__file__)
-        f=open(path+'/data/'+self.table_name+'.ltr','w')
-        for i in range(self.table_num):
-            self.views.extend([ViewPosition(i,view_pos) for view_pos in range(self.tables[i].view_num)])
-        for i in range(self.table_num):
-            for j in range(self.tables[i].view_num):
-                view=self.tables[i].views[j]
-                f.write(view.output()+'\n')
-        f.close()
+        with open(path+'/data/'+self.table_name+'.ltr','w') as f:
+            for i in range(self.table_num):
+                self.views.extend([ViewPosition(i,view_pos) for view_pos in range(self.tables[i].view_num)])
+            for i in range(self.table_num):
+                for j in range(self.tables[i].view_num):
+                    view=self.tables[i].views[j]
+                    f.write(view.output()+'\n')
         cmd='java -jar "'+path+'/jars/RankLib.jar" -load "'+path+'/jars/rank.model" -rank "'+path+'/data/'+self.table_name+'.ltr" -score "'+path+'/data/'+self.table_name+'.score"'
         os.popen(cmd)
-        f=open(path+'/data/'+self.table_name+'.score')
-        i=0
-        line=f.readline()
-        while line:
-            self.tables[self.views[i].table_pos].views[self.views[i].view_pos].score = float(line.split()[-1])
+        with open(path+'/data/'+self.table_name+'.score') as f:
+            i=0
             line=f.readline()
-            i += 1
-        f.close()
-
+            while line:
+                self.tables[self.views[i].table_pos].views[self.views[i].view_pos].score = float(line.split()[-1])
+                line=f.readline()
+                i += 1
         self.views.sort(key=lambda view:self.tables[view.table_pos].views[view.view_pos].score,reverse=True)
 
 

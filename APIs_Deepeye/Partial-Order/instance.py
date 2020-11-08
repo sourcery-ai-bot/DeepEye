@@ -27,10 +27,7 @@ class Instance(object):
                     max_M[view.chart]=view.M
         for table in self.tables:
             for view in table.views:
-                if max_M[view.chart]==0:
-                    view.M=1
-                else:
-                    view.M=1.0*view.M/max_M[view.chart]
+                view.M = 1 if max_M[view.chart]==0 else 1.0*view.M/max_M[view.chart]
 
     def getW(self):
         '''weight=[0 for i in range(self.column_num)]
@@ -49,10 +46,7 @@ class Instance(object):
                     view.W+=weight[view.z_id]'''
         for table in self.tables:
             for view in table.views:
-                if view.z_id==-1:
-                    view.W=1.0/3*2
-                else:
-                    view.W=1.0
+                view.W = 1.0/3*2 if view.z_id==-1 else 1.0
 
     def getScore(self):
         for i in range(self.table_num):
@@ -70,7 +64,7 @@ class Instance(object):
                             continue
                         G[i][j] = (view_i.M - view_j.M + view_i.Q - view_j.Q + view_i.W - view_j.W) / 3.0
                         out_edge_num[i] += 1
-        for remove_time in range(self.view_num-1):
+        for _ in range(self.view_num-1):
             for i in range(self.view_num):
                 if out_edge_num[i]==0:
                     for j in range(self.view_num):
